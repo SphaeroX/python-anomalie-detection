@@ -26,7 +26,6 @@ def highlight_anomaly(frame, anomaly_mask, coloring_anomaly, transparency=0.3):
     cv2.addWeighted(anomaly_overlay, transparency, highlighted_frame, 1 - transparency, 0, highlighted_frame)
     return highlighted_frame
 
-
 def calibrate_threshold(autoencoder, calibration_time=10, calibration_percent=1.06):
     cap = cv2.VideoCapture(0)
     start_time = time.time()
