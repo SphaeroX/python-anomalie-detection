@@ -1,27 +1,45 @@
-# Anomaly Detection in Video Streams
+# Real-Time Anomaly Detection with Python and OpenCV
 
-This project uses an autoencoder neural network to detect anomalies in video streams. The autoencoder is trained on a reference video and can be used to monitor live video streams for deviations from the reference. Detected anomalies are saved as separate video files.
+This project demonstrates how to perform real-time anomaly detection using Python, OpenCV, and a pre-trained autoencoder model. The project consists of three main parts: capturing the reference state, training the autoencoder, and monitoring the current state for anomalies.
 
-## Files
+## Prerequisites
 
-### 1. record.py
+- Python 3.7+
+- OpenCV
+- TensorFlow
 
-This script records a reference video using a webcam. The video is saved to the specified path and has a predefined duration in seconds.
+You can install the required packages using the following command:
 
-### 2. train.py
+```pip install opencv-python opencv-python-headless tensorflow```
 
-This script preprocesses the reference video, optionally applying contour detection. It then trains an autoencoder neural network on the video frames and saves the trained model as an .h5 file. The model loss is plotted over time to visualize the training progress.
-
-### 3. watch.py
-
-This script monitors a live video stream using a webcam and compares it to the trained autoencoder model. Detected anomalies are saved as separate video files with a timestamp in their names. The script also calibrates the anomaly detection threshold based on the autoencoder's performance.
-
-### 4. config.py
-
-This file contains adjustable variables such as the use of contour detection, resizing dimensions, calibration percentage, video path, minimum recorded frames, contour threshold, and recording duration.
 
 ## Usage
 
-1. Record a reference video with `record.py`.
-2. Train the autoencoder model using the reference video with `train.py`.
-3. Monitor the live video stream for anomalies with `watch.py`.
+1. **Capturing the reference state:** Run the `capture_reference_state.py` script to record a video of the reference state using your webcam. The recorded video will be saved as `soll_zustand.avi`.
+
+```
+python capture_reference_state.py
+```
+
+2. **Training the autoencoder:** Run the `train_autoencoder.py` script to train the autoencoder model using the captured reference video. The trained model will be saved as `autoencoder_model.h5`. The script will also display a plot of the model's loss during training and print the number of trained frames.
+
+```
+python train_autoencoder.py
+```
+
+3. **Monitoring the current state for anomalies:** Run the `monitor_current_state.py` script to monitor the current state using your webcam. The script will compare the current state to the reference state and detect anomalies in real time. Detected anomalies will be highlighted in the video with a partially transparent red overlay. If an anomaly lasts longer than 20 frames, the video sequence will be saved as `anomaly_TIMESTAMP.avi`, where `TIMESTAMP` is the time when the anomaly was detected.
+
+```
+python monitor_current_state.py
+```
+
+## Customization
+
+You can customize the behavior of the anomaly detection by modifying the following variables in the `monitor_current_state.py` script:
+
+- `coloring_anomaly`: Set this to `True` to enable coloring the detected anomalies in the video. Set it to `False` to disable coloring.
+- `transparency`: Adjust the transparency of the anomaly overlay. A value of 0 makes the overlay fully transparent, while a value of 1 makes it fully opaque.
+
+## License
+
+This project is licensed under the MIT License.
