@@ -1,6 +1,7 @@
 import cv2
 import os
 import time
+from config import recording_duration, video_path
 
 def record_reference_video(video_path, duration):
     cap = cv2.VideoCapture(0)
@@ -22,6 +23,5 @@ def record_reference_video(video_path, duration):
     out.release()
     cv2.destroyAllWindows()
 
-video_path = 'soll_zustand.avi'
-duration = 20  # Dauer in Sekunden
+duration = recording_duration  # Dauer in Sekunden
 record_reference_video(video_path, duration)

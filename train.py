@@ -6,23 +6,37 @@ import cv2
 import os
 import matplotlib.pyplot as plt
 
-def preprocess_video(video_path):
+from config import use_contour, resize_x, resize_y, video_path, contour_threshold
+
+def apply_contour_detection(frame, threshold=contour_threshold):
+    gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    blurred_frame = cv2.GaussianBlur(gray_frame, (5, 5), 0)
+    edges = cv2.Canny(blurred_frame, threshold, threshold * 2)
+    return edges
+
+def preprocess_video(video_path, use_contour=True):
     frames = []
     cap = cv2.VideoCapture(video_path)
+
     
     while True:
         ret, frame = cap.read()
         if not ret:
             break
         
-        resized_frame = cv2.resize(frame, (224, 224))
+        if use_contour:
+            frame = apply_contour_detection(frame)
+            frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+
+        
+        resized_frame = cv2.resize(frame, (resize_x, resize_y))
         frames.append(resized_frame)
 
     cap.release()
     return np.array(frames)
 
 def create_autoencoder_model():
-    input_shape = (224, 224, 3)
+    input_shape = (resize_x, resize_y, 3)
 
     inputs = Input(input_shape)
     x = Conv2D(32, (3, 3), activation='relu', padding='same')(inputs)
@@ -42,8 +56,7 @@ def create_autoencoder_model():
 
     return autoencoder
 
-video_path = 'soll_zustand.avi'
-frames = preprocess_video(video_path)
+frames = preprocess_video(video_path, use_contour)
 x_train = frames / 255.0
 
 autoencoder = create_autoencoder_model()

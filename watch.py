@@ -4,6 +4,13 @@ import tensorflow as tf
 import time
 from datetime import datetime
 
+from config import use_contour, resize_x, resize_y, calibration_percent, min_recorded_frames, contour_threshold
+
+def apply_contour_detection(frame, threshold=contour_threshold):
+    gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    blurred_frame = cv2.GaussianBlur(gray_frame, (5, 5), 0)
+    edges = cv2.Canny(blurred_frame, threshold, threshold * 2)
+    return edges
 
 def reconstruct_image(autoencoder, image):
     input_tensor = np.expand_dims(image, axis=0)
@@ -13,6 +20,7 @@ def reconstruct_image(autoencoder, image):
 def calculate_anomaly(image, reconstructed_image, threshold):
     mse = np.mean((image - reconstructed_image) ** 2)
     anomaly_mask = mse > threshold
+    print(mse)
     return anomaly_mask
 
 def highlight_anomaly(frame, anomaly_mask, coloring_anomaly, transparency=0.3):
@@ -26,7 +34,7 @@ def highlight_anomaly(frame, anomaly_mask, coloring_anomaly, transparency=0.3):
     cv2.addWeighted(anomaly_overlay, transparency, highlighted_frame, 1 - transparency, 0, highlighted_frame)
     return highlighted_frame
 
-def calibrate_threshold(autoencoder, calibration_time=10, calibration_percent=1.06):
+def calibrate_threshold(autoencoder, use_contour=False, calibration_time=10, calibration_percent=calibration_percent):
     cap = cv2.VideoCapture(0)
     start_time = time.time()
     mse_values = []
@@ -36,7 +44,11 @@ def calibrate_threshold(autoencoder, calibration_time=10, calibration_percent=1.
         if not ret:
             break
 
-        resized_frame = cv2.resize(frame, (224, 224)) / 255.0
+        if use_contour:
+            frame = apply_contour_detection(frame)
+            frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+
+        resized_frame = cv2.resize(frame, (resize_x, resize_y)) / 255.0
         reconstructed_frame = reconstruct_image(autoencoder, resized_frame)
         mse = np.mean((resized_frame - reconstructed_frame) ** 2)
         mse_values.append(mse)
@@ -46,8 +58,9 @@ def calibrate_threshold(autoencoder, calibration_time=10, calibration_percent=1.
     threshold = average_mse * calibration_percent
     return threshold
 
-def monitor_and_detect_anomalies(autoencoder, coloring_anomaly=True):
-    anomaly_threshold = calibrate_threshold(autoencoder)
+def monitor_and_detect_anomalies(autoencoder, use_contour=False, coloring_anomaly=True):
+    anomaly_threshold = calibrate_threshold(autoencoder, use_contour=use_contour)
+
     print(f"Anomaly threshold set to: {anomaly_threshold}")
 
     cap = cv2.VideoCapture(0)
@@ -59,10 +72,15 @@ def monitor_and_detect_anomalies(autoencoder, coloring_anomaly=True):
 
     while True:
         ret, frame = cap.read()
+        frame_original = frame
         if not ret:
             break
 
-        resized_frame = cv2.resize(frame, (224, 224)) / 255.0
+        if use_contour:
+            frame = apply_contour_detection(frame)
+            frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+
+        resized_frame = cv2.resize(frame, (resize_x, resize_y)) / 255.0
         reconstructed_frame = reconstruct_image(autoencoder, resized_frame)
         anomaly_mask = calculate_anomaly(resized_frame, reconstructed_frame, anomaly_threshold)
 
@@ -72,10 +90,10 @@ def monitor_and_detect_anomalies(autoencoder, coloring_anomaly=True):
         if np.any(anomaly_mask):
             if not recording:
                 recording = True
-            recorded_frames.append(frame)
+            recorded_frames.append(frame_original)
         else:
             if recording:
-                if len(recorded_frames) > 20:
+                if len(recorded_frames) > min_recorded_frames:
                     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
                     output_filename = f'anomaly_{timestamp}.avi'
                     fourcc = cv2.VideoWriter_fourcc(*'XVID')
@@ -96,4 +114,4 @@ def monitor_and_detect_anomalies(autoencoder, coloring_anomaly=True):
     cv2.destroyAllWindows()
 
 autoencoder = tf.keras.models.load_model('autoencoder_model.h5')
-monitor_and_detect_anomalies(autoencoder)
+monitor_and_detect_anomalies(autoencoder, use_contour=use_contour)
