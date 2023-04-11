@@ -8,7 +8,7 @@ import cv2
 import os
 import matplotlib.pyplot as plt
 
-from config import use_contour, resize_x, resize_y, video_path, contour_threshold
+from config import use_contour, resize_x, resize_y, video_path, contour_threshold, epochs, batch_size
 
 def apply_contour_detection(frame, threshold=contour_threshold):
     gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -75,8 +75,8 @@ split_index = int((1 - validation_split) * len(x_train))
 x_train_data = x_train[:split_index]
 x_validation_data = x_train[split_index:]
 
-train_generator = datagen.flow(x_train_data, x_train_data, batch_size=4)
-validation_generator = datagen.flow(x_validation_data, x_validation_data, batch_size=4)
+train_generator = datagen.flow(x_train_data, x_train_data, batch_size)
+validation_generator = datagen.flow(x_validation_data, x_validation_data, batch_size)
 
 autoencoder = create_autoencoder_model()
 
@@ -87,7 +87,7 @@ early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weig
 history = autoencoder.fit(
     train_generator,
     steps_per_epoch=len(train_generator),
-    epochs=10,
+    epochs=epochs,
     validation_data=validation_generator,
     validation_steps=len(validation_generator),
     callbacks=[early_stopping]

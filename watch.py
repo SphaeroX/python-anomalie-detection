@@ -63,9 +63,18 @@ def monitor_and_detect_anomalies(autoencoder, use_contour=False, coloring_anomal
 
     print(f"Anomaly threshold set to: {anomaly_threshold}")
 
+    def update_anomaly_threshold(value):
+        nonlocal anomaly_threshold
+        anomaly_threshold = base_threshold *  (value / 1000)
+        print((value / 100))
+
     cap = cv2.VideoCapture(0)
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+    cv2.namedWindow('Ist-Zustand')
+    base_threshold = anomaly_threshold
+    cv2.createTrackbar('Threshold %', 'Ist-Zustand', 1000, 2000, update_anomaly_threshold)
 
     recording = False
     recorded_frames = []
