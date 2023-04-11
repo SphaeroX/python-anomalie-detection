@@ -17,3 +17,6 @@ recording_duration = 20
 # Auslöser für Detection
 min_recorded_frames = 20
 calibration_percent = 1.005
+calibration_method = 'median'  # 'average' or 'median', or 'percentile'
+adaptive_threshold = False
+adaptive_threshold_alpha = 0.1  # for exponential smoothing (adjust between 0 and 1)
