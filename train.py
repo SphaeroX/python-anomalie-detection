@@ -1,6 +1,8 @@
 import tensorflow as tf
 from tensorflow.keras.layers import Conv2D, Conv2DTranspose, Input
 from tensorflow.keras.models import Model
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.callbacks import EarlyStopping
 import numpy as np
 import cv2
 import os
@@ -18,7 +20,6 @@ def preprocess_video(video_path, use_contour=True):
     frames = []
     cap = cv2.VideoCapture(video_path)
 
-    
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -28,7 +29,6 @@ def preprocess_video(video_path, use_contour=True):
             frame = apply_contour_detection(frame)
             frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
 
-        
         resized_frame = cv2.resize(frame, (resize_x, resize_y))
         frames.append(resized_frame)
 
@@ -59,17 +59,49 @@ def create_autoencoder_model():
 frames = preprocess_video(video_path, use_contour)
 x_train = frames / 255.0
 
+datagen = ImageDataGenerator(
+    rotation_range=20,
+    width_shift_range=0.1,
+    height_shift_range=0.1,
+    shear_range=0.1,
+    zoom_range=0.1,
+    channel_shift_range=0.1,
+    horizontal_flip=True
+)
+
+# Splitting data into training and validation
+validation_split = 0.2
+split_index = int((1 - validation_split) * len(x_train))
+x_train_data = x_train[:split_index]
+x_validation_data = x_train[split_index:]
+
+train_generator = datagen.flow(x_train_data, x_train_data, batch_size=4)
+validation_generator = datagen.flow(x_validation_data, x_validation_data, batch_size=4)
+
 autoencoder = create_autoencoder_model()
-history = autoencoder.fit(x_train, x_train, epochs=10, batch_size=4)
+
+# Early Stopping
+early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
+
+# Training the model
+history = autoencoder.fit(
+    train_generator,
+    steps_per_epoch=len(train_generator),
+    epochs=10,
+    validation_data=validation_generator,
+    validation_steps=len(validation_generator),
+    callbacks=[early_stopping]
+)
 
 autoencoder.save('autoencoder_model.h5')
 
 # Verlustwert plotten
 plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
 plt.title('Model loss')
 plt.ylabel('Loss')
 plt.xlabel('Epoch')
-plt.legend(['Train'], loc='upper right')
+plt.legend(['Train', 'Validation'], loc='upper right')
 plt.show()
 
 print(f"Anzahl der trainierten Frames: {len(x_train)}")
